@@ -1,4 +1,4 @@
-const CACHE = 'jm-terminaciones-v4'
+const CACHE = 'facil-demo-v5'
 
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting())
