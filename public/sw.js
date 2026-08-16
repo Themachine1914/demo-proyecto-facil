@@ -1,4 +1,4 @@
-const CACHE = 'facil-demo-v8'
+const CACHE = 'facil-demo-v9'
 
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting())
