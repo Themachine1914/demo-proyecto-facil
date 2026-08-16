@@ -2,7 +2,7 @@
 
 Demo independiente para presentar a clientes. App mobile-first de control de proyectos de terminaciones (puertas, ventanas, baños, closets) con Kanban y finanzas. Montos en pesos dominicanos (DOP).
 
-No usa Firebase ni datos de ningún cliente real. El login y los proyectos de ejemplo viven en la propia app.
+No usa Firebase ni datos de ningún cliente real. Arranca vacía: tablero, finanzas y técnicos se crean en la demo.
 
 - Demo: https://demo-proyecto-facil.vercel.app
 - Repositorio: https://github.com/Themachine1914/demo-proyecto-facil

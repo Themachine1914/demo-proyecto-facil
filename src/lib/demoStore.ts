@@ -3,7 +3,7 @@ import type { Project, ProjectFormData, ProjectGeneralUpdate, ProjectStatus } fr
 import type { Technician, TechnicianFormData } from '../types/technician'
 import { computeProjectTotals } from './finance'
 
-const STORAGE_KEY = 'demo-proyecto-facil-data'
+const STORAGE_KEY = 'demo-proyecto-facil-data-v2'
 
 export interface DemoState {
   projects: Project[]
@@ -16,13 +16,6 @@ export interface DemoState {
 type Listener = () => void
 
 const listeners = new Set<Listener>()
-
-function daysAgo(days: number): Date {
-  const date = new Date()
-  date.setHours(9, 0, 0, 0)
-  date.setDate(date.getDate() - days)
-  return date
-}
 
 function newId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`
@@ -38,230 +31,14 @@ function withTotals(project: Project, state: DemoState): Project {
   return { ...project, ...totals, updatedAt: new Date() }
 }
 
-function seedState(): DemoState {
-  const technicians: Technician[] = [
-    {
-      id: 'tech-1',
-      name: 'Carlos Peña',
-      dailyRate: 2500,
-      active: true,
-      createdAt: daysAgo(40),
-      updatedAt: daysAgo(10),
-    },
-    {
-      id: 'tech-2',
-      name: 'Luis Martínez',
-      dailyRate: 2200,
-      active: true,
-      createdAt: daysAgo(35),
-      updatedAt: daysAgo(8),
-    },
-    {
-      id: 'tech-3',
-      name: 'Ana Rosario',
-      dailyRate: 2800,
-      active: true,
-      createdAt: daysAgo(20),
-      updatedAt: daysAgo(4),
-    },
-  ]
-
-  const projects: Project[] = [
-    {
-      id: 'proj-1',
-      clientName: 'Familia Reyes',
-      projectName: 'Puertas y ventanas',
-      address: 'Residencial Palma Real',
-      startDate: daysAgo(4),
-      status: 'quoted',
-      order: 0,
-      budget: 185000,
-      materialsBudget: 110000,
-      laborBudget: 75000,
-      physicalProgress: 0,
-      laborCost: 0,
-      materialsPurchased: 0,
-      paymentsReceived: 0,
-      realCost: 0,
-      pendingBalance: 185000,
-      estimatedProfit: 185000,
-      createdAt: daysAgo(4),
-      updatedAt: daysAgo(4),
-    },
-    {
-      id: 'proj-2',
-      clientName: 'Villa del Este',
-      projectName: 'Closets a medida',
-      address: 'Autopista Las Américas',
-      startDate: daysAgo(18),
-      status: 'in_progress',
-      order: 0,
-      budget: 240000,
-      materialsBudget: 150000,
-      laborBudget: 90000,
-      physicalProgress: 55,
-      laborCost: 0,
-      materialsPurchased: 0,
-      paymentsReceived: 0,
-      realCost: 0,
-      pendingBalance: 240000,
-      estimatedProfit: 240000,
-      createdAt: daysAgo(18),
-      updatedAt: daysAgo(1),
-    },
-    {
-      id: 'proj-3',
-      clientName: 'Oficina Centro',
-      projectName: 'Terminaciones interiores',
-      address: 'Av. Winston Churchill',
-      startDate: daysAgo(32),
-      status: 'to_collect',
-      order: 0,
-      budget: 320000,
-      materialsBudget: 190000,
-      laborBudget: 130000,
-      physicalProgress: 100,
-      laborCost: 0,
-      materialsPurchased: 0,
-      paymentsReceived: 0,
-      realCost: 0,
-      pendingBalance: 320000,
-      estimatedProfit: 320000,
-      createdAt: daysAgo(32),
-      updatedAt: daysAgo(2),
-    },
-    {
-      id: 'proj-4',
-      clientName: 'Apartamento Naco',
-      projectName: 'Baño principal',
-      address: 'Naco, Santo Domingo',
-      startDate: daysAgo(60),
-      status: 'finished',
-      order: 0,
-      budget: 145000,
-      materialsBudget: 90000,
-      laborBudget: 55000,
-      physicalProgress: 100,
-      laborCost: 0,
-      materialsPurchased: 0,
-      paymentsReceived: 0,
-      realCost: 0,
-      pendingBalance: 145000,
-      estimatedProfit: 145000,
-      createdAt: daysAgo(60),
-      updatedAt: daysAgo(12),
-    },
-  ]
-
-  const workDays: Record<string, WorkDay[]> = {
-    'proj-2': [
-      {
-        id: 'wd-1',
-        technicianId: 'tech-1',
-        technicianName: 'Carlos Peña',
-        date: daysAgo(3),
-        dailyValue: 2500,
-        notes: 'Instalación de módulos',
-        createdAt: daysAgo(3),
-      },
-      {
-        id: 'wd-2',
-        technicianId: 'tech-3',
-        technicianName: 'Ana Rosario',
-        date: daysAgo(2),
-        dailyValue: 2800,
-        createdAt: daysAgo(2),
-      },
-    ],
-    'proj-3': [
-      {
-        id: 'wd-3',
-        technicianId: 'tech-2',
-        technicianName: 'Luis Martínez',
-        date: daysAgo(8),
-        dailyValue: 2200,
-        createdAt: daysAgo(8),
-      },
-    ],
-    'proj-4': [
-      {
-        id: 'wd-4',
-        technicianId: 'tech-1',
-        technicianName: 'Carlos Peña',
-        date: daysAgo(20),
-        dailyValue: 2500,
-        createdAt: daysAgo(20),
-      },
-    ],
+function emptyState(): DemoState {
+  return {
+    projects: [],
+    technicians: [],
+    workDays: {},
+    purchases: {},
+    payments: {},
   }
-
-  const purchases: Record<string, Purchase[]> = {
-    'proj-2': [
-      {
-        id: 'pu-1',
-        amount: 42000,
-        date: daysAgo(10),
-        paymentType: 'cash',
-        notes: 'Melamina y herrajes',
-        createdAt: daysAgo(10),
-      },
-    ],
-    'proj-3': [
-      {
-        id: 'pu-2',
-        amount: 88000,
-        date: daysAgo(16),
-        paymentType: 'credit',
-        notes: 'Pisos y pintura',
-        createdAt: daysAgo(16),
-      },
-    ],
-    'proj-4': [
-      {
-        id: 'pu-3',
-        amount: 61000,
-        date: daysAgo(40),
-        paymentType: 'cash',
-        createdAt: daysAgo(40),
-      },
-    ],
-  }
-
-  const payments: Record<string, Payment[]> = {
-    'proj-2': [
-      {
-        id: 'pa-1',
-        amount: 80000,
-        date: daysAgo(15),
-        method: 'transferencia',
-        notes: 'Avance inicial',
-        createdAt: daysAgo(15),
-      },
-    ],
-    'proj-3': [
-      {
-        id: 'pa-2',
-        amount: 200000,
-        date: daysAgo(20),
-        method: 'transferencia',
-        createdAt: daysAgo(20),
-      },
-    ],
-    'proj-4': [
-      {
-        id: 'pa-3',
-        amount: 145000,
-        date: daysAgo(14),
-        method: 'efectivo',
-        notes: 'Pago final',
-        createdAt: daysAgo(14),
-      },
-    ],
-  }
-
-  const state: DemoState = { projects, technicians, workDays, purchases, payments }
-  state.projects = state.projects.map((project) => withTotals(project, state))
-  return state
 }
 
 function reviveDates(_key: string, value: unknown): unknown {
@@ -272,13 +49,13 @@ function reviveDates(_key: string, value: unknown): unknown {
 }
 
 function loadState(): DemoState {
-  if (typeof window === 'undefined') return seedState()
+  if (typeof window === 'undefined') return emptyState()
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return seedState()
+    if (!raw) return emptyState()
     return JSON.parse(raw, reviveDates) as DemoState
   } catch {
-    return seedState()
+    return emptyState()
   }
 }
 
