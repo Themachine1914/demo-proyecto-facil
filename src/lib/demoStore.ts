@@ -4,6 +4,9 @@ import type { Technician, TechnicianFormData } from '../types/technician'
 import { computeProjectTotals } from './finance'
 
 const STORAGE_KEY = 'demo-proyecto-facil-data-v3'
+const LEGACY_STORAGE_KEYS = ['demo-proyecto-facil-data-v2', 'demo-proyecto-facil-data']
+const SEED_PROJECT_IDS = new Set(['proj-1', 'proj-2', 'proj-3', 'proj-4'])
+const SEED_TECH_IDS = new Set(['tech-1', 'tech-2', 'tech-3'])
 
 export interface DemoState {
   projects: Project[]
@@ -264,24 +267,108 @@ function seedState(): DemoState {
   return next
 }
 
-function reviveDates(_key: string, value: unknown): unknown {
+const DATE_KEYS = new Set(['startDate', 'createdAt', 'updatedAt', 'date'])
+
+function reviveDates(key: string, value: unknown): unknown {
+  if (DATE_KEYS.has(key) && typeof value === 'string') {
+    const parsed = new Date(value)
+    if (!Number.isNaN(parsed.getTime())) return parsed
+  }
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
-    return new Date(value)
+    const parsed = new Date(value)
+    if (!Number.isNaN(parsed.getTime())) return parsed
   }
   return value
 }
 
-function loadState(): DemoState {
-  if (typeof window === 'undefined') return seedState()
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return seedState()
-    const parsed = JSON.parse(raw, reviveDates) as DemoState
-    if (!parsed.projects?.length) return seedState()
-    return parsed
-  } catch {
-    return seedState()
+function ensureDate(value: Date | string | undefined, fallback = new Date()): Date {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value
+  if (typeof value === 'string') {
+    const parsed = new Date(value)
+    if (!Number.isNaN(parsed.getTime())) return parsed
   }
+  return fallback
+}
+
+function normalizeState(input: DemoState): DemoState {
+  const workDays = input.workDays ?? {}
+  const purchases = input.purchases ?? {}
+  const payments = input.payments ?? {}
+  const next: DemoState = {
+    projects: input.projects ?? [],
+    technicians: input.technicians ?? [],
+    workDays,
+    purchases,
+    payments,
+  }
+  next.projects = next.projects.map((project) => {
+    const totals = computeProjectTotals({
+      budget: project.budget,
+      workDays: workDays[project.id] ?? [],
+      purchases: purchases[project.id] ?? [],
+      payments: payments[project.id] ?? [],
+    })
+    return {
+      ...project,
+      ...totals,
+      startDate: ensureDate(project.startDate),
+      createdAt: ensureDate(project.createdAt),
+      updatedAt: ensureDate(project.updatedAt),
+    }
+  })
+  return next
+}
+
+function readStoredState(key: string): DemoState | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(key)
+    if (!raw) return null
+    const parsed = JSON.parse(raw, reviveDates) as DemoState
+    if (!parsed || !Array.isArray(parsed.projects)) return null
+    return normalizeState(parsed)
+  } catch {
+    return null
+  }
+}
+
+function mergeUserProjects(base: DemoState, extra: DemoState): DemoState {
+  const projectIds = new Set(base.projects.map((project) => project.id))
+  const techIds = new Set(base.technicians.map((technician) => technician.id))
+  const userProjects = extra.projects.filter(
+    (project) => !SEED_PROJECT_IDS.has(project.id) && !projectIds.has(project.id),
+  )
+  const userTechnicians = extra.technicians.filter(
+    (technician) => !SEED_TECH_IDS.has(technician.id) && !techIds.has(technician.id),
+  )
+  if (userProjects.length === 0 && userTechnicians.length === 0) return base
+
+  const workDays = { ...base.workDays }
+  const purchases = { ...base.purchases }
+  const payments = { ...base.payments }
+  for (const project of userProjects) {
+    workDays[project.id] = extra.workDays[project.id] ?? []
+    purchases[project.id] = extra.purchases[project.id] ?? []
+    payments[project.id] = extra.payments[project.id] ?? []
+  }
+
+  return {
+    projects: [...userProjects, ...base.projects],
+    technicians: [...base.technicians, ...userTechnicians],
+    workDays,
+    purchases,
+    payments,
+  }
+}
+
+function loadState(): DemoState {
+  const current = readStoredState(STORAGE_KEY)
+  let next = current ?? seedState()
+  for (const key of LEGACY_STORAGE_KEYS) {
+    const legacy = readStoredState(key)
+    if (legacy) next = mergeUserProjects(next, legacy)
+  }
+  return next
 }
 
 let state = loadState()
@@ -290,6 +377,8 @@ function persist() {
   if (typeof window === 'undefined') return
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
 }
+
+persist()
 
 function emit() {
   persist()

@@ -45,14 +45,19 @@ export function remainingToSpend(spent: number, budget: number): number {
 }
 
 export function amountToInvest(input: {
+  budget?: number
   materialsBudget: number
   materialsPurchased: number
   laborBudget: number
   laborCost: number
 }): number {
-  return (
+  const fromLineBudgets =
     remainingToSpend(input.materialsPurchased, input.materialsBudget) +
     remainingToSpend(input.laborCost, input.laborBudget)
+  if (fromLineBudgets > 0) return fromLineBudgets
+  return remainingToSpend(
+    input.materialsPurchased + input.laborCost,
+    input.budget ?? 0,
   )
 }
 
@@ -84,7 +89,7 @@ export function computeDashboardStats(projects: Project[]) {
     .filter((project) => isOpenInvestmentStatus(project.status))
     .reduce((acc, project) => acc + amountToInvest(project), 0)
   const recent = [...projects]
-    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+    .sort((a, b) => timestamp(b.updatedAt) - timestamp(a.updatedAt))
     .slice(0, 6)
 
   return {
@@ -94,6 +99,16 @@ export function computeDashboardStats(projects: Project[]) {
     toInvest,
     recent,
   }
+}
+
+function timestamp(value: Date | string | number | undefined): number {
+  if (value instanceof Date) return value.getTime()
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const parsed = new Date(value).getTime()
+    return Number.isNaN(parsed) ? 0 : parsed
+  }
+  return 0
 }
 
 export function materialsBudgetDelta(
