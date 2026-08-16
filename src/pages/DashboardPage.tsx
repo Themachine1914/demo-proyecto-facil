@@ -11,7 +11,13 @@ import { Spinner } from '../components/ui/Spinner'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { useMonthCashflow } from '../hooks/useProject'
 import { useProjects } from '../hooks/useProjects'
-import { amountToInvest, isActiveProjectStatus, isOpenInvestmentStatus } from '../lib/finance'
+import {
+  amountToCollect,
+  amountToInvest,
+  computeDashboardStats,
+  isCollectableStatus,
+  isOpenInvestmentStatus,
+} from '../lib/finance'
 import { currentMonthKey, formatMoney, monthLabel } from '../lib/format'
 import type { ProjectFormData } from '../types/project'
 
@@ -21,23 +27,7 @@ export function DashboardPage() {
   const { monthProfit } = useMonthCashflow(period)
   const [modalOpen, setModalOpen] = useState(false)
 
-  const stats = useMemo(() => {
-    const active = projects.filter((project) => isActiveProjectStatus(project.status))
-    const collectable = projects.filter(
-      (project) => project.status === 'in_progress' || project.status === 'to_collect',
-    )
-    const quotedTotal = projects
-      .filter((project) => project.status === 'quoted')
-      .reduce((acc, project) => acc + project.budget, 0)
-    const toCollect = collectable.reduce((acc, project) => acc + project.pendingBalance, 0)
-    const toInvest = projects
-      .filter((project) => isOpenInvestmentStatus(project.status))
-      .reduce((acc, project) => acc + amountToInvest(project), 0)
-    const recent = [...projects]
-      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-      .slice(0, 6)
-    return { activeCount: active.length, quotedTotal, toCollect, toInvest, recent }
-  }, [projects])
+  const stats = useMemo(() => computeDashboardStats(projects), [projects])
 
   async function handleCreate(data: ProjectFormData) {
     try {
@@ -87,12 +77,14 @@ export function DashboardPage() {
             />
             <StatCard
               icon={<Banknote className="h-4 w-4 text-amber-600" />}
-              label="Total por cobrar"
+              label="Falta por cobrar"
+              hint="Saldo pendiente de cotizados, en proceso y por cobrar"
               value={formatMoney(stats.toCollect)}
             />
             <StatCard
               icon={<Landmark className="h-4 w-4 text-blue-700" />}
-              label="Total por invertir"
+              label="Falta por invertir"
+              hint="Materiales y mano de obra pendientes de cotizados y en proceso"
               value={formatMoney(stats.toInvest)}
             />
             <StatCard
@@ -138,20 +130,31 @@ export function DashboardPage() {
                       </div>
                       <StatusBadge status={project.status} />
                     </div>
-                    <div className="mt-2 flex items-center justify-between text-xs">
-                      <span className="text-facil-text-secondary">
-                        {formatMoney(project.budget)}
-                      </span>
-                      <Money amount={project.pendingBalance} signed className="text-xs font-medium" />
-                    </div>
-                    {isOpenInvestmentStatus(project.status) && (
-                      <div className="mt-1 flex items-center justify-between text-[11px] text-facil-text-secondary">
-                        <span>Por invertir</span>
-                        <span className="font-medium tabular-nums text-blue-800">
-                          {formatMoney(amountToInvest(project))}
+                    <div className="mt-2 space-y-1 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-facil-text-secondary">Presupuesto</span>
+                        <span className="font-medium tabular-nums text-facil-text">
+                          {formatMoney(project.budget)}
                         </span>
                       </div>
-                    )}
+                      {isCollectableStatus(project.status) && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-facil-text-secondary">Falta por cobrar</span>
+                          <Money
+                            amount={amountToCollect(project)}
+                            className="text-xs font-medium text-amber-700"
+                          />
+                        </div>
+                      )}
+                      {isOpenInvestmentStatus(project.status) && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-facil-text-secondary">Falta por invertir</span>
+                          <span className="font-medium tabular-nums text-blue-800">
+                            {formatMoney(amountToInvest(project))}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                     <ProgressBar value={project.physicalProgress} className="mt-2" />
                   </Link>
                 </li>
@@ -173,11 +176,13 @@ export function DashboardPage() {
 function StatCard({
   icon,
   label,
+  hint,
   value,
   valueNode,
 }: {
   icon: ReactNode
   label: string
+  hint?: string
   value?: string
   valueNode?: ReactNode
 }) {
@@ -188,6 +193,7 @@ function StatCard({
         <span className="text-xs font-medium">{label}</span>
       </div>
       {valueNode ?? <p className="text-lg font-bold text-facil-text">{value}</p>}
+      {hint && <p className="mt-1 text-[11px] leading-snug text-facil-text-secondary">{hint}</p>}
     </Card>
   )
 }

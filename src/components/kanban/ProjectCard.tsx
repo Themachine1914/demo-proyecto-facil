@@ -6,7 +6,12 @@ import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
 import { formatMoney } from '../../lib/format'
-import { amountToInvest } from '../../lib/finance'
+import {
+  amountToCollect,
+  amountToInvest,
+  isCollectableStatus,
+  isOpenInvestmentStatus,
+} from '../../lib/finance'
 import type { Project, ProjectStatus } from '../../types/project'
 import { Money } from '../ui/Money'
 import { ProgressBar } from '../ui/ProgressBar'
@@ -71,16 +76,23 @@ export function ProjectCardContent({
       </div>
 
       <div className="mb-3 space-y-1">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-facil-text-secondary">Saldo por cobrar</span>
-          <Money amount={project.pendingBalance} signed className="text-xs font-semibold" />
-        </div>
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-facil-text-secondary">Por invertir</span>
-          <span className="font-semibold tabular-nums text-blue-800">
-            {formatMoney(amountToInvest(project))}
-          </span>
-        </div>
+        {isCollectableStatus(project.status) && (
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-facil-text-secondary">Falta por cobrar</span>
+            <Money
+              amount={amountToCollect(project)}
+              className="text-xs font-semibold text-amber-700"
+            />
+          </div>
+        )}
+        {isOpenInvestmentStatus(project.status) && (
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-facil-text-secondary">Falta por invertir</span>
+            <span className="font-semibold tabular-nums text-blue-800">
+              {formatMoney(amountToInvest(project))}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-2">

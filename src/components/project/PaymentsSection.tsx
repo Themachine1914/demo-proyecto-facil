@@ -33,7 +33,7 @@ export function PaymentsSection({
           <Money amount={received} className="font-semibold" />
         </div>
         <div className="mt-1 flex items-center justify-between text-sm">
-          <span className="text-facil-text-secondary">Saldo pendiente</span>
+          <span className="text-facil-text-secondary">Falta por cobrar</span>
           <Money amount={pending} signed className="font-semibold" />
         </div>
       </div>

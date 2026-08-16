@@ -1,5 +1,5 @@
 import type { Payment, ProjectTotals, Purchase, WorkDay } from '../types/finance'
-import type { ProjectStatus } from '../types/project'
+import type { Project, ProjectStatus } from '../types/project'
 
 export function computeProjectTotals(input: {
   budget: number
@@ -56,12 +56,44 @@ export function amountToInvest(input: {
   )
 }
 
+export function amountToCollect(input: { pendingBalance: number }): number {
+  return Math.max(0, input.pendingBalance)
+}
+
 export function isActiveProjectStatus(status: ProjectStatus): boolean {
   return status === 'in_progress' || status === 'to_collect'
 }
 
+export function isCollectableStatus(status: ProjectStatus): boolean {
+  return status === 'quoted' || status === 'in_progress' || status === 'to_collect'
+}
+
 export function isOpenInvestmentStatus(status: ProjectStatus): boolean {
-  return status === 'in_progress'
+  return status === 'quoted' || status === 'in_progress'
+}
+
+export function computeDashboardStats(projects: Project[]) {
+  const active = projects.filter((project) => isActiveProjectStatus(project.status))
+  const quotedTotal = projects
+    .filter((project) => project.status === 'quoted')
+    .reduce((acc, project) => acc + project.budget, 0)
+  const toCollect = projects
+    .filter((project) => isCollectableStatus(project.status))
+    .reduce((acc, project) => acc + amountToCollect(project), 0)
+  const toInvest = projects
+    .filter((project) => isOpenInvestmentStatus(project.status))
+    .reduce((acc, project) => acc + amountToInvest(project), 0)
+  const recent = [...projects]
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+    .slice(0, 6)
+
+  return {
+    activeCount: active.length,
+    quotedTotal,
+    toCollect,
+    toInvest,
+    recent,
+  }
 }
 
 export function materialsBudgetDelta(

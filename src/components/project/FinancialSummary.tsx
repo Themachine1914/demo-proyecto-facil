@@ -43,14 +43,14 @@ export function FinancialSummary({
         <SummaryItem label="Pagos recibidos">
           <Money amount={totals.paymentsReceived} className="text-base font-semibold" />
         </SummaryItem>
-        <SummaryItem label="Saldo por cobrar">
-          <Money amount={totals.pendingBalance} signed className="text-base font-semibold" />
+        <SummaryItem label="Falta por cobrar">
+          <Money amount={Math.max(0, totals.pendingBalance)} className="text-base font-semibold text-amber-700" />
         </SummaryItem>
       </dl>
 
       <div className="flex items-center justify-between rounded-[10px] bg-blue-50 px-3 py-3">
         <div>
-          <p className="text-xs font-medium text-blue-800">Por invertir</p>
+          <p className="text-xs font-medium text-blue-800">Falta por invertir</p>
           <p className="mt-0.5 text-[11px] text-facil-text-secondary">
             Materiales y mano de obra pendientes
           </p>
@@ -83,8 +83,9 @@ export function FinancialSummary({
       </div>
 
       <p className="text-[11px] text-facil-text-secondary">
-        Costo real = materiales comprados + mano de obra. Por invertir = lo que falta gastar vs
-        presupuesto de materiales y de mano de obra. Utilidad = presupuesto − costo real.
+        Costo real = materiales comprados + mano de obra. Falta por invertir = lo que falta gastar vs
+        presupuesto de materiales y de mano de obra. Falta por cobrar = presupuesto − pagos
+        recibidos. Utilidad = presupuesto − costo real.
       </p>
     </Card>
   )
