@@ -1,4 +1,4 @@
-import { BadgeCheck, Banknote, Briefcase, CircleCheck, ClipboardList, Landmark, LayoutGrid, Plus, RotateCcw, TrendingUp } from 'lucide-react'
+import { BadgeCheck, Banknote, Briefcase, CircleCheck, ClipboardList, FileText, Landmark, LayoutGrid, Plus, Receipt, RotateCcw, TrendingUp } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
@@ -82,6 +82,22 @@ export function DashboardPage() {
         </div>
       ) : (
         <div className="space-y-4 px-4 pb-8 sm:px-6">
+          <div className="grid grid-cols-2 gap-2">
+            <Link
+              to="/cotizar"
+              className="inline-flex items-center justify-center gap-2 rounded-[10px] border border-facil-border bg-facil-surface px-3 py-3 text-sm font-medium text-facil-text shadow-[var(--fa-shadow)]"
+            >
+              <FileText className="h-4 w-4 text-facil-primary" />
+              Cotizar
+            </Link>
+            <Link
+              to="/facturar"
+              className="inline-flex items-center justify-center gap-2 rounded-[10px] border border-facil-border bg-facil-surface px-3 py-3 text-sm font-medium text-facil-text shadow-[var(--fa-shadow)]"
+            >
+              <Receipt className="h-4 w-4 text-facil-accent" />
+              Facturar
+            </Link>
+          </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <StatCard
               icon={<Briefcase className="h-4 w-4 text-facil-primary" />}

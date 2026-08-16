@@ -1,12 +1,22 @@
+import type {
+  DocumentFormData,
+  Invoice,
+  InvoiceStatus,
+  Quote,
+  QuoteStatus,
+} from '../types/document'
 import type { Payment, PaymentFormData, Purchase, PurchaseFormData, WorkDay, WorkDayFormData } from '../types/finance'
 import type { Project, ProjectFormData, ProjectGeneralUpdate, ProjectStatus } from '../types/project'
 import type { Technician, TechnicianFormData } from '../types/technician'
+import { linesTotal, nextDocumentNumber } from './documents'
 import { computeProjectTotals } from './finance'
 
 const STORAGE_KEY = 'demo-proyecto-facil-data-v3'
 const LEGACY_STORAGE_KEYS = ['demo-proyecto-facil-data-v2', 'demo-proyecto-facil-data']
 const SEED_PROJECT_IDS = new Set(['proj-1', 'proj-2', 'proj-3', 'proj-4'])
 const SEED_TECH_IDS = new Set(['tech-1', 'tech-2', 'tech-3'])
+const SEED_QUOTE_IDS = new Set(['quote-1', 'quote-2'])
+const SEED_INVOICE_IDS = new Set(['inv-1', 'inv-2'])
 
 export interface DemoState {
   projects: Project[]
@@ -14,6 +24,8 @@ export interface DemoState {
   workDays: Record<string, WorkDay[]>
   purchases: Record<string, Purchase[]>
   payments: Record<string, Payment[]>
+  quotes: Quote[]
+  invoices: Invoice[]
 }
 
 type Listener = () => void
@@ -262,7 +274,80 @@ function seedState(): DemoState {
     ],
   }
 
-  const next: DemoState = { projects, technicians, workDays, purchases, payments }
+  const quotes: Quote[] = [
+    {
+      id: 'quote-1',
+      number: 'COT-001',
+      clientName: 'Familia Reyes',
+      projectName: 'Puertas y ventanas',
+      address: 'Residencial Palma Real',
+      date: daysAgo(4),
+      notes: 'Incluye instalación.',
+      lines: [
+        { id: 'ql-1', description: 'Puertas interiores y marcos', amount: 95000 },
+        { id: 'ql-2', description: 'Ventanas de aluminio', amount: 90000 },
+      ],
+      total: 185000,
+      status: 'accepted',
+      projectId: 'proj-1',
+      createdAt: daysAgo(4),
+      updatedAt: daysAgo(4),
+    },
+    {
+      id: 'quote-2',
+      number: 'COT-002',
+      clientName: 'Residencial Las Palmas',
+      projectName: 'Closet habitación principal',
+      address: 'Km 12, Autopista Duarte',
+      date: daysAgo(1),
+      lines: [
+        { id: 'ql-3', description: 'Closet a medida en melamina', amount: 48000 },
+        { id: 'ql-4', description: 'Herrajes y correderas', amount: 20000 },
+      ],
+      total: 68000,
+      status: 'sent',
+      createdAt: daysAgo(1),
+      updatedAt: daysAgo(1),
+    },
+  ]
+
+  const invoices: Invoice[] = [
+    {
+      id: 'inv-1',
+      number: 'FAC-001',
+      clientName: 'Oficina Centro',
+      projectName: 'Terminaciones interiores',
+      address: 'Av. Winston Churchill',
+      date: daysAgo(2),
+      notes: 'Saldo según avance de obra.',
+      lines: [
+        { id: 'il-1', description: 'Terminaciones interiores', amount: 320000 },
+      ],
+      total: 320000,
+      status: 'issued',
+      projectId: 'proj-3',
+      createdAt: daysAgo(2),
+      updatedAt: daysAgo(2),
+    },
+    {
+      id: 'inv-2',
+      number: 'FAC-002',
+      clientName: 'Apartamento Naco',
+      projectName: 'Baño principal',
+      address: 'Naco, Santo Domingo',
+      date: daysAgo(14),
+      lines: [
+        { id: 'il-2', description: 'Baño principal — trabajo completo', amount: 145000 },
+      ],
+      total: 145000,
+      status: 'paid',
+      projectId: 'proj-4',
+      createdAt: daysAgo(14),
+      updatedAt: daysAgo(14),
+    },
+  ]
+
+  const next: DemoState = { projects, technicians, workDays, purchases, payments, quotes, invoices }
   next.projects = next.projects.map((project) => withTotals(project, next))
   return next
 }
@@ -290,6 +375,57 @@ function ensureDate(value: Date | string | undefined, fallback = new Date()): Da
   return fallback
 }
 
+function normalizeLines(lines: Quote['lines'] | undefined): Quote['lines'] {
+  if (!Array.isArray(lines)) return []
+  return lines.map((line, index) => ({
+    id: line.id || `line-${index}`,
+    description: line.description?.trim() || 'Partida',
+    amount: Number.isFinite(line.amount) ? line.amount : 0,
+  }))
+}
+
+function normalizeQuote(quote: Quote): Quote {
+  const lines = normalizeLines(quote.lines)
+  return {
+    ...quote,
+    lines,
+    total: linesTotal(lines),
+    date: ensureDate(quote.date),
+    createdAt: ensureDate(quote.createdAt),
+    updatedAt: ensureDate(quote.updatedAt),
+    address: quote.address?.trim() || undefined,
+    notes: quote.notes?.trim() || undefined,
+  }
+}
+
+function normalizeInvoice(invoice: Invoice): Invoice {
+  const lines = normalizeLines(invoice.lines)
+  return {
+    ...invoice,
+    lines,
+    total: linesTotal(lines),
+    date: ensureDate(invoice.date),
+    createdAt: ensureDate(invoice.createdAt),
+    updatedAt: ensureDate(invoice.updatedAt),
+    address: invoice.address?.trim() || undefined,
+    notes: invoice.notes?.trim() || undefined,
+  }
+}
+
+function seedDocuments(): Pick<DemoState, 'quotes' | 'invoices'> {
+  const seeded = seedState()
+  return { quotes: seeded.quotes, invoices: seeded.invoices }
+}
+
+function withSeedDocuments(state: DemoState): DemoState {
+  const seed = seedDocuments()
+  return {
+    ...state,
+    quotes: state.quotes.length > 0 ? state.quotes : seed.quotes,
+    invoices: state.invoices.length > 0 ? state.invoices : seed.invoices,
+  }
+}
+
 function normalizeState(input: DemoState): DemoState {
   const workDays = input.workDays ?? {}
   const purchases = input.purchases ?? {}
@@ -300,6 +436,8 @@ function normalizeState(input: DemoState): DemoState {
     workDays,
     purchases,
     payments,
+    quotes: (input.quotes ?? []).map(normalizeQuote),
+    invoices: (input.invoices ?? []).map(normalizeInvoice),
   }
   next.projects = next.projects.map((project) => {
     const totals = computeProjectTotals({
@@ -335,13 +473,28 @@ function readStoredState(key: string): DemoState | null {
 function mergeUserProjects(base: DemoState, extra: DemoState): DemoState {
   const projectIds = new Set(base.projects.map((project) => project.id))
   const techIds = new Set(base.technicians.map((technician) => technician.id))
+  const quoteIds = new Set((base.quotes ?? []).map((quote) => quote.id))
+  const invoiceIds = new Set((base.invoices ?? []).map((invoice) => invoice.id))
   const userProjects = extra.projects.filter(
     (project) => !SEED_PROJECT_IDS.has(project.id) && !projectIds.has(project.id),
   )
   const userTechnicians = extra.technicians.filter(
     (technician) => !SEED_TECH_IDS.has(technician.id) && !techIds.has(technician.id),
   )
-  if (userProjects.length === 0 && userTechnicians.length === 0) return base
+  const userQuotes = (extra.quotes ?? []).filter(
+    (quote) => !SEED_QUOTE_IDS.has(quote.id) && !quoteIds.has(quote.id),
+  )
+  const userInvoices = (extra.invoices ?? []).filter(
+    (invoice) => !SEED_INVOICE_IDS.has(invoice.id) && !invoiceIds.has(invoice.id),
+  )
+  if (
+    userProjects.length === 0 &&
+    userTechnicians.length === 0 &&
+    userQuotes.length === 0 &&
+    userInvoices.length === 0
+  ) {
+    return base
+  }
 
   const workDays = { ...base.workDays }
   const purchases = { ...base.purchases }
@@ -358,6 +511,8 @@ function mergeUserProjects(base: DemoState, extra: DemoState): DemoState {
     workDays,
     purchases,
     payments,
+    quotes: [...userQuotes, ...base.quotes],
+    invoices: [...userInvoices, ...base.invoices],
   }
 }
 
@@ -393,10 +548,10 @@ function loadState(): DemoState {
     for (const extra of withUserProjects.slice(1)) {
       next = mergeUserProjects(next, extra)
     }
-    return next
+    return withSeedDocuments(next)
   }
 
-  return current ?? seedState()
+  return withSeedDocuments(current ?? seedState())
 }
 
 let state = loadState()
@@ -458,6 +613,7 @@ export function createDemoProject(data: ProjectFormData) {
     payments: { ...state.payments, [project.id]: [] },
   }
   emit()
+  return project.id
 }
 
 export function reorderDemoColumn(
@@ -637,6 +793,160 @@ export function resetDemoState() {
     }
   }
   state = seedState()
+  emit()
+}
+
+function documentFromForm(
+  data: DocumentFormData,
+): Pick<Quote, 'clientName' | 'projectName' | 'address' | 'date' | 'notes' | 'lines' | 'total' | 'projectId'> {
+  const lines = data.lines
+    .filter((line) => line.description.trim() && line.amount > 0)
+    .map((line) => ({
+      id: newId('line'),
+      description: line.description.trim(),
+      amount: line.amount,
+    }))
+  return {
+    clientName: data.clientName.trim(),
+    projectName: data.projectName.trim(),
+    address: data.address?.trim() || undefined,
+    date: data.date,
+    notes: data.notes?.trim() || undefined,
+    lines,
+    total: linesTotal(lines),
+    projectId: data.projectId,
+  }
+}
+
+export function createDemoQuote(data: DocumentFormData) {
+  const now = new Date()
+  const fields = documentFromForm(data)
+  const quote: Quote = {
+    id: newId('quote'),
+    number: nextDocumentNumber(
+      'COT',
+      state.quotes.map((item) => item.number),
+    ),
+    ...fields,
+    status: 'draft',
+    createdAt: now,
+    updatedAt: now,
+  }
+  state = { ...state, quotes: [quote, ...state.quotes] }
+  emit()
+  return quote.id
+}
+
+export function updateDemoQuote(quoteId: string, data: DocumentFormData) {
+  const fields = documentFromForm(data)
+  state = {
+    ...state,
+    quotes: state.quotes.map((quote) =>
+      quote.id === quoteId ? { ...quote, ...fields, updatedAt: new Date() } : quote,
+    ),
+  }
+  emit()
+}
+
+export function setDemoQuoteStatus(quoteId: string, status: QuoteStatus) {
+  const quote = state.quotes.find((item) => item.id === quoteId)
+  if (!quote) return
+  let projectId = quote.projectId
+  if (status === 'accepted' && !projectId) {
+    projectId = createDemoProject({
+      clientName: quote.clientName,
+      projectName: quote.projectName,
+      address: quote.address,
+      startDate: quote.date,
+      budget: quote.total,
+      materialsBudget: quote.total,
+      laborBudget: 0,
+    })
+  }
+  state = {
+    ...state,
+    quotes: state.quotes.map((item) =>
+      item.id === quoteId ? { ...item, status, projectId, updatedAt: new Date() } : item,
+    ),
+  }
+  emit()
+}
+
+export function deleteDemoQuote(quoteId: string) {
+  state = { ...state, quotes: state.quotes.filter((quote) => quote.id !== quoteId) }
+  emit()
+}
+
+export function createDemoInvoice(data: DocumentFormData, quoteId?: string) {
+  const now = new Date()
+  const fields = documentFromForm(data)
+  const invoice: Invoice = {
+    id: newId('inv'),
+    number: nextDocumentNumber(
+      'FAC',
+      state.invoices.map((item) => item.number),
+    ),
+    ...fields,
+    status: 'draft',
+    quoteId,
+    createdAt: now,
+    updatedAt: now,
+  }
+  state = { ...state, invoices: [invoice, ...state.invoices] }
+  emit()
+  return invoice.id
+}
+
+export function createDemoInvoiceFromQuote(quoteId: string) {
+  const quote = state.quotes.find((item) => item.id === quoteId)
+  if (!quote) throw new Error('Cotización no encontrada')
+  return createDemoInvoice(
+    {
+      clientName: quote.clientName,
+      projectName: quote.projectName,
+      address: quote.address,
+      date: new Date(),
+      notes: quote.notes,
+      lines: quote.lines.map((line) => ({ description: line.description, amount: line.amount })),
+      projectId: quote.projectId,
+    },
+    quote.id,
+  )
+}
+
+export function updateDemoInvoice(invoiceId: string, data: DocumentFormData) {
+  const fields = documentFromForm(data)
+  state = {
+    ...state,
+    invoices: state.invoices.map((invoice) =>
+      invoice.id === invoiceId ? { ...invoice, ...fields, updatedAt: new Date() } : invoice,
+    ),
+  }
+  emit()
+}
+
+export function setDemoInvoiceStatus(invoiceId: string, status: InvoiceStatus) {
+  const invoice = state.invoices.find((item) => item.id === invoiceId)
+  if (!invoice) return
+  if (status === 'paid' && invoice.status !== 'paid' && invoice.projectId) {
+    addDemoPayment(invoice.projectId, {
+      amount: invoice.total,
+      date: new Date(),
+      method: 'transferencia',
+      notes: `Factura ${invoice.number}`,
+    })
+  }
+  state = {
+    ...state,
+    invoices: state.invoices.map((item) =>
+      item.id === invoiceId ? { ...item, status, updatedAt: new Date() } : item,
+    ),
+  }
+  emit()
+}
+
+export function deleteDemoInvoice(invoiceId: string) {
+  state = { ...state, invoices: state.invoices.filter((invoice) => invoice.id !== invoiceId) }
   emit()
 }
 

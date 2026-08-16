@@ -5,8 +5,12 @@ import { AppShell } from './components/layout/AppShell'
 import { AuthProvider } from './contexts/AuthContext'
 import { BoardPage } from './pages/BoardPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { InvoiceDetailPage } from './pages/InvoiceDetailPage'
+import { InvoicesPage } from './pages/InvoicesPage'
 import { LoginPage } from './pages/LoginPage'
 import { ProjectDetailPage } from './pages/ProjectDetailPage'
+import { QuoteDetailPage } from './pages/QuoteDetailPage'
+import { QuotesPage } from './pages/QuotesPage'
 import { TechniciansPage } from './pages/TechniciansPage'
 
 export default function App() {
@@ -20,6 +24,10 @@ export default function App() {
               <Route index element={<DashboardPage />} />
               <Route path="tablero" element={<BoardPage />} />
               <Route path="proyectos/:projectId" element={<ProjectDetailPage />} />
+              <Route path="cotizar" element={<QuotesPage />} />
+              <Route path="cotizar/:quoteId" element={<QuoteDetailPage />} />
+              <Route path="facturar" element={<InvoicesPage />} />
+              <Route path="facturar/:invoiceId" element={<InvoiceDetailPage />} />
               <Route path="tecnicos" element={<TechniciansPage />} />
             </Route>
           </Route>

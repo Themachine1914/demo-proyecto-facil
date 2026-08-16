@@ -12,18 +12,22 @@ export function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`
 }
 
-export function formatDate(date: Date): string {
+export function formatDate(date: Date | string): string {
+  const parsed = date instanceof Date ? date : new Date(date)
+  if (Number.isNaN(parsed.getTime())) return '—'
   return new Intl.DateTimeFormat('es-DO', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
-  }).format(date)
+  }).format(parsed)
 }
 
-export function toDateInput(date: Date): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
+export function toDateInput(date: Date | string): string {
+  const parsed = date instanceof Date ? date : new Date(date)
+  const safe = Number.isNaN(parsed.getTime()) ? new Date() : parsed
+  const y = safe.getFullYear()
+  const m = String(safe.getMonth() + 1).padStart(2, '0')
+  const d = String(safe.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
 }
 
