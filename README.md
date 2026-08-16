@@ -4,6 +4,9 @@ Demo de presentación de la app mobile-first de control de proyectos de terminac
 
 Copia de [Terminaciones Meléndez](https://github.com/Themachine1914/terminaciones-melendez) para mostrarla a distintos clientes. El logo actual es un placeholder (`TU LOGO AQUI`) listo para sustituir por la marca del cliente.
 
+- Demo: https://demo-terminaciones-melendez.vercel.app
+- Repositorio: https://github.com/Themachine1914/demo-terminaciones-melendez
+
 ## Cómo correr
 
 ```bash
