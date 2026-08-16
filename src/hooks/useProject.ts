@@ -5,9 +5,11 @@ import {
   addDemoPurchase,
   addDemoWorkDay,
   deleteDemoPayment,
+  deleteDemoProject,
   deleteDemoPurchase,
   deleteDemoWorkDay,
   getDemoState,
+  moveDemoProject,
   subscribeDemoStore,
   updateDemoGeneral,
   updateDemoProgress,
@@ -18,7 +20,7 @@ import type {
   PurchaseFormData,
   WorkDayFormData,
 } from '../types/finance'
-import type { ProjectGeneralUpdate } from '../types/project'
+import type { ProjectGeneralUpdate, ProjectStatus } from '../types/project'
 
 function emptyTotals(budget: number): ProjectTotals {
   return {
@@ -112,6 +114,19 @@ export function useProject(projectId: string | undefined) {
     [projectId],
   )
 
+  const moveProject = useCallback(
+    async (newStatus: ProjectStatus) => {
+      if (!projectId) throw new Error('Proyecto no encontrado')
+      moveDemoProject(projectId, newStatus)
+    },
+    [projectId],
+  )
+
+  const removeProject = useCallback(async () => {
+    if (!projectId) throw new Error('Proyecto no encontrado')
+    deleteDemoProject(projectId)
+  }, [projectId])
+
   return {
     project,
     workDays,
@@ -127,6 +142,8 @@ export function useProject(projectId: string | undefined) {
     deletePayment,
     updateGeneral,
     updatePhysicalProgress,
+    moveProject,
+    removeProject,
   }
 }
 
@@ -151,8 +168,10 @@ export function useMonthCashflow(period: string) {
   }
 }
 
-function monthMatches(date: Date, period: string): boolean {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
+function monthMatches(date: Date | string, period: string): boolean {
+  const parsed = date instanceof Date ? date : new Date(date)
+  if (Number.isNaN(parsed.getTime())) return false
+  const y = parsed.getFullYear()
+  const m = String(parsed.getMonth() + 1).padStart(2, '0')
   return `${y}-${m}` === period
 }

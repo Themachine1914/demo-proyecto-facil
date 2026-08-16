@@ -2,16 +2,18 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { BOARD_COLUMNS } from '../../lib/constants'
 import { parseDateInput, toDateInput } from '../../lib/format'
 import { parseAmount } from '../../lib/parse'
-import type { Project, ProjectGeneralUpdate } from '../../types/project'
+import type { Project, ProjectGeneralUpdate, ProjectStatus } from '../../types/project'
 import { Button } from '../ui/Button'
 import { Field, MoneyField, SelectField } from '../ui/Field'
 
 export function GeneralForm({
   project,
   onSave,
+  onStatusChange,
 }: {
   project: Project
   onSave: (data: ProjectGeneralUpdate) => Promise<void>
+  onStatusChange: (status: ProjectStatus) => Promise<void>
 }) {
   const [clientName, setClientName] = useState(project.clientName)
   const [projectName, setProjectName] = useState(project.projectName)
@@ -77,7 +79,15 @@ export function GeneralForm({
         value={startDate}
         onChange={(event) => setStartDate(event.target.value)}
       />
-      <SelectField label="Estado" value={project.status} disabled>
+      <SelectField
+        label="Estado"
+        value={project.status}
+        onChange={(event) => {
+          const next = event.target.value as ProjectStatus
+          if (next === project.status) return
+          void onStatusChange(next)
+        }}
+      >
         {BOARD_COLUMNS.map((column) => (
           <option key={column.id} value={column.id}>
             {column.label}
@@ -85,7 +95,7 @@ export function GeneralForm({
         ))}
       </SelectField>
       <p className="text-[11px] text-facil-text-secondary">
-        El estado se cambia desde el tablero (arrastrar o Mover).
+        También puedes moverlo desde el tablero (arrastrar o Mover).
       </p>
       <MoneyField
         label="Presupuesto total (RD$)"

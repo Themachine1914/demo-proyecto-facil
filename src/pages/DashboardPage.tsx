@@ -1,10 +1,11 @@
-import { Banknote, Briefcase, ClipboardList, Landmark, LayoutGrid, Plus, TrendingUp } from 'lucide-react'
+import { Banknote, Briefcase, ClipboardList, Landmark, LayoutGrid, Plus, RotateCcw, TrendingUp } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { NewProjectModal } from '../components/kanban/NewProjectModal'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
+import { ConfirmSheet } from '../components/ui/ConfirmSheet'
 import { Money } from '../components/ui/Money'
 import { ProgressBar } from '../components/ui/ProgressBar'
 import { Spinner } from '../components/ui/Spinner'
@@ -23,10 +24,12 @@ import { currentMonthKey, formatMoney, monthLabel } from '../lib/format'
 import type { ProjectFormData } from '../types/project'
 
 export function DashboardPage() {
-  const { projects, loading, createProject } = useProjects()
+  const { projects, loading, createProject, restoreDemoData } = useProjects()
   const period = currentMonthKey()
-  const { monthProfit } = useMonthCashflow(period)
+  const { monthProfit, paymentsTotal, purchasesTotal, laborTotal } = useMonthCashflow(period)
   const [modalOpen, setModalOpen] = useState(false)
+  const [confirmReset, setConfirmReset] = useState(false)
+  const [resetting, setResetting] = useState(false)
 
   const stats = useMemo(() => computeDashboardStats(projects), [projects])
 
@@ -38,6 +41,19 @@ export function DashboardPage() {
       const message = error instanceof Error ? error.message : 'No se pudo crear el proyecto'
       toast.error(message)
       throw error
+    }
+  }
+
+  async function handleRestore() {
+    setResetting(true)
+    try {
+      await restoreDemoData()
+      toast.success('Datos de ejemplo restaurados')
+      setConfirmReset(false)
+    } catch {
+      toast.error('No se pudieron restaurar los datos')
+    } finally {
+      setResetting(false)
     }
   }
 
@@ -93,7 +109,22 @@ export function DashboardPage() {
               icon={<TrendingUp className="h-4 w-4 text-emerald-600" />}
               label="Utilidad del mes"
               valueNode={<Money amount={monthProfit} signed className="text-lg font-bold" />}
-            />
+            >
+              <div className="mt-2 space-y-0.5 text-[11px] text-facil-text-secondary">
+                <div className="flex justify-between gap-2">
+                  <span>Cobrado</span>
+                  <span className="tabular-nums">{formatMoney(paymentsTotal)}</span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span>Materiales</span>
+                  <span className="tabular-nums">{formatMoney(purchasesTotal)}</span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span>Mano de obra</span>
+                  <span className="tabular-nums">{formatMoney(laborTotal)}</span>
+                </div>
+              </div>
+            </StatCard>
           </div>
 
           <div className="flex items-center justify-between">
@@ -163,6 +194,15 @@ export function DashboardPage() {
               ))}
             </ul>
           )}
+
+          <button
+            type="button"
+            onClick={() => setConfirmReset(true)}
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] px-3 py-3 text-xs font-medium text-facil-text-secondary hover:bg-facil-surface hover:text-facil-text"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Restaurar datos de ejemplo
+          </button>
         </div>
       )}
 
@@ -170,6 +210,15 @@ export function DashboardPage() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onSubmit={handleCreate}
+      />
+      <ConfirmSheet
+        open={confirmReset}
+        title="Restaurar demo"
+        message="Se vuelven a cargar los 4 proyectos de ejemplo. Se pierden los proyectos, compras y pagos que hayas creado en este teléfono."
+        confirmLabel="Restaurar"
+        busy={resetting}
+        onClose={() => setConfirmReset(false)}
+        onConfirm={() => void handleRestore()}
       />
     </div>
   )
@@ -181,12 +230,14 @@ function StatCard({
   hint,
   value,
   valueNode,
+  children,
 }: {
   icon: ReactNode
   label: string
   hint?: string
   value?: string
   valueNode?: ReactNode
+  children?: ReactNode
 }) {
   return (
     <Card>
@@ -196,6 +247,7 @@ function StatCard({
       </div>
       {valueNode ?? <p className="text-lg font-bold text-facil-text">{value}</p>}
       {hint && <p className="mt-1 text-[11px] leading-snug text-facil-text-secondary">{hint}</p>}
+      {children}
     </Card>
   )
 }
