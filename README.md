@@ -4,7 +4,8 @@ Demo independiente para presentar a clientes. App mobile-first de control de pro
 
 No usa Firebase ni datos de ningún cliente real. Arranca con proyectos de ejemplo para ver el Dashboard (falta por cobrar, falta por invertir, utilidad) y el tablero.
 
-- Demo: https://demo-proyecto-facil.vercel.app
+- Demo (producción, sin login de Vercel): https://demo-terminaciones-melendez.vercel.app
+- Alias con protección SSO de Vercel: https://demo-proyecto-facil.vercel.app
 - Repositorio: https://github.com/Themachine1914/demo-proyecto-facil
 
 ## Acceso de demostración

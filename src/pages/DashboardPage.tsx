@@ -18,6 +18,7 @@ import {
   isCollectableStatus,
   isOpenInvestmentStatus,
 } from '../lib/finance'
+import { APP_VERSION } from '../lib/appVersion'
 import { currentMonthKey, formatMoney, monthLabel } from '../lib/format'
 import type { ProjectFormData } from '../types/project'
 
@@ -48,6 +49,7 @@ export function DashboardPage() {
           <p className="mt-1 text-xs text-facil-text-secondary sm:text-sm">
             Resumen de proyectos y caja de {monthLabel(period)}
           </p>
+          <p className="mt-0.5 text-[10px] text-facil-text-secondary/80">Versión {APP_VERSION}</p>
         </div>
         <Button
           onClick={() => setModalOpen(true)}
