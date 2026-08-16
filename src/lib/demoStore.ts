@@ -361,14 +361,42 @@ function mergeUserProjects(base: DemoState, extra: DemoState): DemoState {
   }
 }
 
+function userProjectsOf(state: DemoState | null): Project[] {
+  if (!state) return []
+  return state.projects.filter((project) => !SEED_PROJECT_IDS.has(project.id))
+}
+
+function stripSeedProjects(state: DemoState): DemoState {
+  const projects = userProjectsOf(state)
+  const workDays = { ...state.workDays }
+  const purchases = { ...state.purchases }
+  const payments = { ...state.payments }
+  for (const id of SEED_PROJECT_IDS) {
+    delete workDays[id]
+    delete purchases[id]
+    delete payments[id]
+  }
+  return { ...state, projects, workDays, purchases, payments }
+}
+
 function loadState(): DemoState {
   const current = readStoredState(STORAGE_KEY)
-  let next = current ?? seedState()
-  for (const key of LEGACY_STORAGE_KEYS) {
-    const legacy = readStoredState(key)
-    if (legacy) next = mergeUserProjects(next, legacy)
+  const legacyStates = LEGACY_STORAGE_KEYS.map((key) => readStoredState(key)).filter(
+    (item): item is DemoState => item !== null,
+  )
+  const withUserProjects = [current, ...legacyStates].filter(
+    (item): item is DemoState => Boolean(item && userProjectsOf(item).length > 0),
+  )
+
+  if (withUserProjects.length > 0) {
+    let next = stripSeedProjects(withUserProjects[0])
+    for (const extra of withUserProjects.slice(1)) {
+      next = mergeUserProjects(next, extra)
+    }
+    return next
   }
-  return next
+
+  return current ?? seedState()
 }
 
 let state = loadState()

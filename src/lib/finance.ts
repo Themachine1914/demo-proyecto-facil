@@ -66,7 +66,7 @@ export function amountToCollect(input: { pendingBalance: number }): number {
 }
 
 export function isActiveProjectStatus(status: ProjectStatus): boolean {
-  return status === 'in_progress' || status === 'to_collect'
+  return status === 'quoted' || status === 'in_progress' || status === 'to_collect'
 }
 
 export function isCollectableStatus(status: ProjectStatus): boolean {
