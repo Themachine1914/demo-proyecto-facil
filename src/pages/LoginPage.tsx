@@ -44,7 +44,10 @@ export function LoginPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center sm:mb-10">
           <Logo height={64} className="mb-4 sm:mb-6 sm:!h-20" />
-          <p className="text-sm text-facil-text-secondary">
+          <h1 className="text-xl font-semibold text-facil-text sm:text-2xl">
+            Demo &quot;proyecto facil&quot;
+          </h1>
+          <p className="mt-1.5 text-sm text-facil-text-secondary">
             Control de proyectos de terminaciones
           </p>
         </div>

@@ -10,7 +10,7 @@ export function Logo({ height = 32, className = '', ...props }: LogoProps) {
   return (
     <img
       src={logo}
-      alt="Jhon Meléndez Terminaciones"
+      alt='Demo "proyecto facil"'
       height={height}
       className={`w-auto object-contain ${className}`}
       style={{ height }}

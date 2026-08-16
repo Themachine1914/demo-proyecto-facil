@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Jhon Meléndez Terminaciones",
-  "short_name": "JM Terminaciones",
+  "name": "Demo \"proyecto facil\"",
+  "short_name": "Proyecto Fácil",
   "description": "Control de proyectos de terminaciones y finanzas",
   "start_url": "/",
   "scope": "/",
