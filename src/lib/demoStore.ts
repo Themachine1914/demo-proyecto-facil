@@ -613,6 +613,33 @@ export function setDemoTechnicianActive(id: string, active: boolean) {
   emit()
 }
 
+export function deleteDemoProject(projectId: string) {
+  const workDays = { ...state.workDays }
+  const purchases = { ...state.purchases }
+  const payments = { ...state.payments }
+  delete workDays[projectId]
+  delete purchases[projectId]
+  delete payments[projectId]
+  state = {
+    ...state,
+    projects: state.projects.filter((project) => project.id !== projectId),
+    workDays,
+    purchases,
+    payments,
+  }
+  emit()
+}
+
+export function resetDemoState() {
+  if (typeof window !== 'undefined') {
+    for (const key of [STORAGE_KEY, ...LEGACY_STORAGE_KEYS]) {
+      window.localStorage.removeItem(key)
+    }
+  }
+  state = seedState()
+  emit()
+}
+
 function patchProjectItems(
   projectId: string,
   next: {

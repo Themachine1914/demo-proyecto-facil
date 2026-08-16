@@ -1,7 +1,7 @@
-import { ArrowLeft, Hammer, MapPin, Package, Percent, User, Wallet } from 'lucide-react'
+import { ArrowLeft, Hammer, MapPin, Package, Percent, Trash2, User, Wallet } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { FinancialSummary } from '../components/project/FinancialSummary'
 import { GeneralForm } from '../components/project/GeneralForm'
 import { LaborSection } from '../components/project/LaborSection'
@@ -9,15 +9,19 @@ import { PaymentsSection } from '../components/project/PaymentsSection'
 import { ProgressSection } from '../components/project/ProgressSection'
 import { PurchasesSection } from '../components/project/PurchasesSection'
 import { Accordion } from '../components/ui/Accordion'
+import { Button } from '../components/ui/Button'
+import { ConfirmSheet } from '../components/ui/ConfirmSheet'
 import { Spinner } from '../components/ui/Spinner'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { useProject } from '../hooks/useProject'
 import { useTechnicians } from '../hooks/useTechnicians'
+import { BOARD_COLUMNS } from '../lib/constants'
 import { formatDate } from '../lib/format'
-import type { ProjectGeneralUpdate } from '../types/project'
+import type { ProjectGeneralUpdate, ProjectStatus } from '../types/project'
 
 export function ProjectDetailPage() {
   const { projectId } = useParams()
+  const navigate = useNavigate()
   const {
     project,
     workDays,
@@ -33,9 +37,13 @@ export function ProjectDetailPage() {
     deletePayment,
     updateGeneral,
     updatePhysicalProgress,
+    moveProject,
+    removeProject,
   } = useProject(projectId)
   const { technicians } = useTechnicians()
   const [progress, setProgress] = useState(0)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     if (project) setProgress(project.physicalProgress)
@@ -57,6 +65,28 @@ export function ProjectDetailPage() {
       await updatePhysicalProgress(value)
     } catch {
       toast.error('No se pudo guardar el avance')
+    }
+  }
+
+  async function handleStatusChange(status: ProjectStatus) {
+    try {
+      await moveProject(status)
+      const label = BOARD_COLUMNS.find((column) => column.id === status)?.label ?? status
+      toast.success(`Movido a ${label}`)
+    } catch {
+      toast.error('No se pudo cambiar el estado')
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      await removeProject()
+      toast.success('Proyecto eliminado')
+      navigate('/tablero', { replace: true })
+    } catch {
+      toast.error('No se pudo eliminar el proyecto')
+      setDeleting(false)
     }
   }
 
@@ -123,7 +153,11 @@ export function ProjectDetailPage() {
           defaultOpen
           icon={<User className="h-4 w-4 text-facil-primary" />}
         >
-          <GeneralForm project={project} onSave={handleSaveGeneral} />
+          <GeneralForm
+            project={project}
+            onSave={handleSaveGeneral}
+            onStatusChange={handleStatusChange}
+          />
         </Accordion>
 
         <Accordion
@@ -192,7 +226,27 @@ export function ProjectDetailPage() {
             onDelete={deletePayment}
           />
         </Accordion>
+
+        <Button
+          variant="danger"
+          className="w-full"
+          onClick={() => setConfirmDelete(true)}
+        >
+          <Trash2 className="h-4 w-4" />
+          Eliminar proyecto
+        </Button>
       </div>
+
+      <ConfirmSheet
+        open={confirmDelete}
+        title="Eliminar proyecto"
+        message="Se borra este proyecto con sus compras, jornadas y pagos. No se puede deshacer."
+        confirmLabel="Eliminar"
+        danger
+        busy={deleting}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={() => void handleDelete()}
+      />
     </div>
   )
 }

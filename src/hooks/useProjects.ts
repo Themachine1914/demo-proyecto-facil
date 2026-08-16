@@ -4,6 +4,7 @@ import {
   getDemoState,
   moveDemoProject,
   reorderDemoColumn,
+  resetDemoState,
   subscribeDemoStore,
 } from '../lib/demoStore'
 import type { ProjectFormData, ProjectStatus } from '../types/project'
@@ -26,11 +27,16 @@ export function useProjects() {
     moveDemoProject(projectId, newStatus)
   }, [])
 
+  const restoreDemoData = useCallback(async () => {
+    resetDemoState()
+  }, [])
+
   return {
     projects: state.projects,
     loading: false,
     createProject,
     reorderColumn,
     moveProjectToColumn,
+    restoreDemoData,
   }
 }
