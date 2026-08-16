@@ -1,4 +1,4 @@
-import { BadgeCheck, Banknote, Briefcase, ClipboardList, Landmark, LayoutGrid, Plus, RotateCcw, TrendingUp } from 'lucide-react'
+import { BadgeCheck, Banknote, Briefcase, CircleCheck, ClipboardList, Landmark, LayoutGrid, Plus, RotateCcw, TrendingUp } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
@@ -97,8 +97,14 @@ export function DashboardPage() {
             <StatCard
               icon={<BadgeCheck className="h-4 w-4 text-facil-primary" />}
               label="Total aprobado"
-              hint="Presupuesto de proyectos en proceso, por cobrar y finalizados"
+              hint="Presupuesto de proyectos en proceso y por cobrar"
               value={formatMoney(stats.approvedTotal)}
+            />
+            <StatCard
+              icon={<CircleCheck className="h-4 w-4 text-emerald-600" />}
+              label="Total finalizado"
+              hint="Presupuesto de proyectos en Finalizado"
+              value={formatMoney(stats.finishedTotal)}
             />
             <StatCard
               icon={<Banknote className="h-4 w-4 text-amber-600" />}

@@ -78,7 +78,7 @@ export function isOpenInvestmentStatus(status: ProjectStatus): boolean {
 }
 
 export function isApprovedStatus(status: ProjectStatus): boolean {
-  return status === 'in_progress' || status === 'to_collect' || status === 'finished'
+  return status === 'in_progress' || status === 'to_collect'
 }
 
 export function computeDashboardStats(projects: Project[]) {
@@ -88,6 +88,9 @@ export function computeDashboardStats(projects: Project[]) {
     .reduce((acc, project) => acc + project.budget, 0)
   const approvedTotal = projects
     .filter((project) => isApprovedStatus(project.status))
+    .reduce((acc, project) => acc + project.budget, 0)
+  const finishedTotal = projects
+    .filter((project) => project.status === 'finished')
     .reduce((acc, project) => acc + project.budget, 0)
   const toCollect = projects
     .filter((project) => isCollectableStatus(project.status))
@@ -103,6 +106,7 @@ export function computeDashboardStats(projects: Project[]) {
     activeCount: active.length,
     quotedTotal,
     approvedTotal,
+    finishedTotal,
     toCollect,
     toInvest,
     recent,
