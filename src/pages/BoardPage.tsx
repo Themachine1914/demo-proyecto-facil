@@ -7,7 +7,6 @@ import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { useProjects } from '../hooks/useProjects'
 import { BOARD_COLUMNS } from '../lib/constants'
-import { isFirebaseConfigured } from '../lib/firebase'
 import type { ProjectFormData, ProjectStatus } from '../types/project'
 
 export function BoardPage() {
@@ -51,7 +50,6 @@ export function BoardPage() {
           </div>
           <Button
             onClick={() => setModalOpen(true)}
-            disabled={!isFirebaseConfigured}
             className="w-full shrink-0 sm:w-auto"
           >
             <Plus className="h-4 w-4" />
@@ -87,11 +85,7 @@ export function BoardPage() {
         </div>
       </div>
 
-      {!isFirebaseConfigured ? (
-        <div className="mx-4 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 sm:mx-6">
-          Configura Firebase en <code>.env</code> para cargar y guardar proyectos.
-        </div>
-      ) : loading ? (
+      {loading ? (
         <div className="flex flex-1 items-center justify-center py-20">
           <Spinner />
         </div>

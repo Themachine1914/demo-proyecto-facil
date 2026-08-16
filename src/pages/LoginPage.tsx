@@ -4,12 +4,13 @@ import toast from 'react-hot-toast'
 import { Logo } from '../components/brand/Logo'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
+import { DEMO_EMAIL, DEMO_PASSWORD } from '../lib/demoAuth'
 import { useAuth } from '../contexts/AuthContext'
 
 export function LoginPage() {
-  const { user, loading, configured, signIn } = useAuth()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const { user, loading, signIn } = useAuth()
+  const [email, setEmail] = useState(DEMO_EMAIL)
+  const [password, setPassword] = useState(DEMO_PASSWORD)
   const [submitting, setSubmitting] = useState(false)
 
   if (loading) {
@@ -56,12 +57,15 @@ export function LoginPage() {
           onSubmit={(event) => void handleSubmit(event)}
           className="rounded-[10px] border border-facil-border bg-facil-surface p-6 shadow-[var(--fa-shadow)] sm:p-8"
         >
-          {!configured && (
-            <div className="mb-6 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Firebase aún no está configurado. Copia <code>.env.example</code> a{' '}
-              <code>.env</code> y completa las variables.
-            </div>
-          )}
+          <div className="mb-6 rounded-[10px] border border-facil-border bg-facil-bg px-4 py-3 text-sm text-facil-text">
+            <p className="font-medium">Cuenta de demostración</p>
+            <p className="mt-1 text-facil-text-secondary">
+              Usuario: <span className="font-medium text-facil-text">{DEMO_EMAIL}</span>
+            </p>
+            <p className="text-facil-text-secondary">
+              Contraseña: <span className="font-medium text-facil-text">{DEMO_PASSWORD}</span>
+            </p>
+          </div>
 
           <label className="mb-4 block">
             <span className="mb-1.5 block text-sm font-medium text-facil-text">Email</span>
@@ -91,7 +95,7 @@ export function LoginPage() {
             />
           </label>
 
-          <Button type="submit" className="w-full" disabled={submitting || !configured}>
+          <Button type="submit" className="w-full" disabled={submitting}>
             {submitting ? 'Entrando…' : 'Iniciar sesión'}
           </Button>
         </form>

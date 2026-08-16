@@ -13,7 +13,6 @@ import { useMonthCashflow } from '../hooks/useProject'
 import { useProjects } from '../hooks/useProjects'
 import { amountToInvest, isActiveProjectStatus, isOpenInvestmentStatus } from '../lib/finance'
 import { currentMonthKey, formatMoney, monthLabel } from '../lib/format'
-import { isFirebaseConfigured } from '../lib/firebase'
 import type { ProjectFormData } from '../types/project'
 
 export function DashboardPage() {
@@ -62,19 +61,12 @@ export function DashboardPage() {
         </div>
         <Button
           onClick={() => setModalOpen(true)}
-          disabled={!isFirebaseConfigured}
           className="w-full shrink-0 sm:w-auto"
         >
           <Plus className="h-4 w-4" />
           Nuevo proyecto
         </Button>
       </div>
-
-      {!isFirebaseConfigured && (
-        <div className="mx-4 mb-4 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 sm:mx-6">
-          Configura Firebase en <code>.env</code> para cargar y guardar datos.
-        </div>
-      )}
 
       {loading ? (
         <div className="flex flex-1 items-center justify-center py-20">

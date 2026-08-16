@@ -8,7 +8,6 @@ import { Money } from '../components/ui/Money'
 import { Sheet } from '../components/ui/Sheet'
 import { Spinner } from '../components/ui/Spinner'
 import { useTechnicians } from '../hooks/useTechnicians'
-import { isFirebaseConfigured } from '../lib/firebase'
 import { parseAmount } from '../lib/parse'
 import type { Technician, TechnicianFormData } from '../types/technician'
 
@@ -48,19 +47,12 @@ export function TechniciansPage() {
             setEditing(null)
             setOpen(true)
           }}
-          disabled={!isFirebaseConfigured}
           className="w-full shrink-0 sm:w-auto"
         >
           <Plus className="h-4 w-4" />
           Agregar técnico
         </Button>
       </div>
-
-      {!isFirebaseConfigured && (
-        <div className="mx-4 mb-4 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 sm:mx-6">
-          Configura Firebase en <code>.env</code> para gestionar técnicos.
-        </div>
-      )}
 
       {loading ? (
         <div className="flex flex-1 items-center justify-center py-20">
