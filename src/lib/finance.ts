@@ -1,0 +1,72 @@
+import type { Payment, ProjectTotals, Purchase, WorkDay } from '../types/finance'
+import type { ProjectStatus } from '../types/project'
+
+export function computeProjectTotals(input: {
+  budget: number
+  workDays: WorkDay[]
+  purchases: Purchase[]
+  payments: Payment[]
+}): ProjectTotals {
+  const laborCost = input.workDays.reduce((acc, day) => acc + day.dailyValue, 0)
+  const materialsPurchased = input.purchases.reduce((acc, item) => acc + item.amount, 0)
+  const paymentsReceived = input.payments.reduce((acc, item) => acc + item.amount, 0)
+  const realCost = laborCost + materialsPurchased
+
+  return {
+    laborCost,
+    materialsPurchased,
+    paymentsReceived,
+    realCost,
+    pendingBalance: input.budget - paymentsReceived,
+    estimatedProfit: input.budget - realCost,
+  }
+}
+
+export function profitPercent(budget: number, estimatedProfit: number): number {
+  if (budget <= 0) return 0
+  return (estimatedProfit / budget) * 100
+}
+
+export function suggestedPhysicalProgress(
+  materialsPurchased: number,
+  materialsBudget: number,
+): number | null {
+  if (materialsBudget <= 0) return null
+  return Math.min(100, Math.round((materialsPurchased / materialsBudget) * 100))
+}
+
+export function budgetDelta(spent: number, budget: number): number {
+  return spent - budget
+}
+
+export function remainingToSpend(spent: number, budget: number): number {
+  if (budget <= 0) return 0
+  return Math.max(0, budget - spent)
+}
+
+export function amountToInvest(input: {
+  materialsBudget: number
+  materialsPurchased: number
+  laborBudget: number
+  laborCost: number
+}): number {
+  return (
+    remainingToSpend(input.materialsPurchased, input.materialsBudget) +
+    remainingToSpend(input.laborCost, input.laborBudget)
+  )
+}
+
+export function isActiveProjectStatus(status: ProjectStatus): boolean {
+  return status === 'in_progress' || status === 'to_collect'
+}
+
+export function isOpenInvestmentStatus(status: ProjectStatus): boolean {
+  return status === 'in_progress'
+}
+
+export function materialsBudgetDelta(
+  materialsPurchased: number,
+  materialsBudget: number,
+): number {
+  return budgetDelta(materialsPurchased, materialsBudget)
+}
