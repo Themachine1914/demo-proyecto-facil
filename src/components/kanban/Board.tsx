@@ -1,10 +1,13 @@
 import {
   DndContext,
   DragOverlay,
+  MeasuringStrategy,
   MouseSensor,
   TouchSensor,
-  closestCorners,
+  closestCenter,
+  getFirstCollision,
   pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
   type CollisionDetection,
@@ -13,30 +16,21 @@ import {
   type DragStartEvent,
   type UniqueIdentifier,
 } from '@dnd-kit/core'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { BOARD_COLUMNS } from '../../lib/constants'
 import type { Project, ProjectStatus } from '../../types/project'
+import {
+  applyDragEndItems,
+  columnIds,
+  findStatus,
+  insertIndexForOver,
+  isColumnId,
+  moveProjectInList,
+  statusFromOver,
+} from './boardMove'
 import { Column } from './Column'
 import { ProjectCardContent } from './ProjectCard'
-
-const COLUMN_IDS = new Set<string>(BOARD_COLUMNS.map((column) => column.id))
-
-function isColumnId(id: UniqueIdentifier | string): id is ProjectStatus {
-  return COLUMN_IDS.has(String(id))
-}
-
-const boardCollisionDetection: CollisionDetection = (args) => {
-  const pointerHits = pointerWithin(args)
-  if (pointerHits.length > 0) {
-    const overCard = pointerHits.find((hit) => !isColumnId(hit.id))
-    if (overCard) return [overCard]
-    const overColumn = pointerHits.find((hit) => isColumnId(hit.id))
-    if (overColumn) return [overColumn]
-    return pointerHits
-  }
-  return closestCorners(args)
-}
 
 interface BoardProps {
   projects: Project[]
@@ -45,18 +39,37 @@ interface BoardProps {
     orderedIds: string[],
     movedProjectId?: string,
   ) => Promise<void>
+  onReorderColumns?: (
+    columns: { status: ProjectStatus; orderedIds: string[] }[],
+    movedProjectId?: string,
+  ) => Promise<void>
   onMoveProject?: (projectId: string, status: ProjectStatus) => Promise<void>
 }
 
-export function Board({ projects, onReorderColumn, onMoveProject }: BoardProps) {
+export function Board({
+  projects,
+  onReorderColumn,
+  onReorderColumns,
+  onMoveProject,
+}: BoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [items, setItems] = useState<Project[]>(projects)
+  const activeIdRef = useRef<string | null>(null)
+  const lastOverId = useRef<UniqueIdentifier | null>(null)
+  const recentlyMovedToNewContainer = useRef(false)
+
+  activeIdRef.current = activeId
 
   useEffect(() => {
-    if (!activeId) {
-      setItems(projects)
-    }
-  }, [projects, activeId])
+    if (activeIdRef.current) return
+    setItems(projects)
+  }, [projects])
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      recentlyMovedToNewContainer.current = false
+    })
+  }, [items])
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -86,14 +99,52 @@ export function Board({ projects, onReorderColumn, onMoveProject }: BoardProps) 
     return map
   }, [items])
 
+  const collisionDetection: CollisionDetection = useCallback(
+    (args) => {
+      const pointerHits = pointerWithin(args)
+      const pointerCard = pointerHits.find((hit) => !isColumnId(hit.id))
+      if (pointerCard) {
+        lastOverId.current = pointerCard.id
+        return [pointerCard]
+      }
+
+      const intersections = pointerHits.length > 0 ? pointerHits : rectIntersection(args)
+      let overId = getFirstCollision(intersections, 'id')
+
+      if (overId != null) {
+        if (isColumnId(overId)) {
+          const containerItems = items.filter(
+            (project) => project.status === overId && project.id !== activeId,
+          )
+          if (containerItems.length > 0) {
+            const closest = closestCenter({
+              ...args,
+              droppableContainers: args.droppableContainers.filter((container) =>
+                containerItems.some((project) => project.id === container.id),
+              ),
+            })[0]
+            if (closest) overId = closest.id
+          }
+        }
+
+        lastOverId.current = overId
+        return [{ id: overId }]
+      }
+
+      if (recentlyMovedToNewContainer.current && activeId) {
+        lastOverId.current = activeId
+      }
+
+      return lastOverId.current ? [{ id: lastOverId.current }] : []
+    },
+    [activeId, items],
+  )
+
   const activeProject = activeId ? (items.find((project) => project.id === activeId) ?? null) : null
 
-  function findStatus(list: Project[], id: string): ProjectStatus | null {
-    if (isColumnId(id)) return id
-    return list.find((project) => project.id === id)?.status ?? null
-  }
-
   function handleDragStart(event: DragStartEvent) {
+    lastOverId.current = null
+    recentlyMovedToNewContainer.current = false
     setActiveId(String(event.active.id))
     setItems(projects)
   }
@@ -107,32 +158,16 @@ export function Board({ projects, onReorderColumn, onMoveProject }: BoardProps) 
 
     setItems((prev) => {
       const fromStatus = findStatus(prev, activeProjectId)
-      const toStatus = findStatus(prev, overId)
+      const toStatus = statusFromOver(over, prev)
       if (!fromStatus || !toStatus || fromStatus === toStatus) return prev
 
-      const moving = prev.find((project) => project.id === activeProjectId)
-      if (!moving) return prev
-
-      const without = prev.filter((project) => project.id !== activeProjectId)
-      const overIsColumn = isColumnId(overId)
-
-      let insertIndex: number
-      if (overIsColumn) {
-        insertIndex = without.filter((project) => project.status === toStatus).length
-      } else {
-        const columnProjects = without.filter((project) => project.status === toStatus)
-        const overIndex = columnProjects.findIndex((project) => project.id === overId)
-        insertIndex = overIndex >= 0 ? overIndex : columnProjects.length
-      }
-
-      const updated: Project = { ...moving, status: toStatus }
-      const before = without.filter((project) => project.status === toStatus)
-      const others = without.filter((project) => project.status !== toStatus)
-      const nextColumn = [...before]
-      nextColumn.splice(insertIndex, 0, updated)
-
-      const renumbered = nextColumn.map((project, index) => ({ ...project, order: index }))
-      return [...others, ...renumbered]
+      recentlyMovedToNewContainer.current = true
+      return moveProjectInList(
+        prev,
+        activeProjectId,
+        toStatus,
+        insertIndexForOver(prev, activeProjectId, overId, toStatus),
+      )
     })
   }
 
@@ -142,67 +177,50 @@ export function Board({ projects, onReorderColumn, onMoveProject }: BoardProps) 
     const original = projects.find((project) => project.id === draggedId)
     const fromStatus = original?.status
 
-    if (!over || !fromStatus) {
-      setActiveId(null)
-      setItems(projects)
-      return
-    }
-
-    const overId = String(over.id)
-    const toStatus = isColumnId(overId)
-      ? overId
-      : findStatus(items, overId) ?? findStatus(items, draggedId)
-
-    if (!toStatus) {
-      setActiveId(null)
-      setItems(projects)
-      return
-    }
-
-    const moving =
-      items.find((project) => project.id === draggedId) ??
-      (original ? { ...original, status: toStatus } : null)
-    if (!moving) {
-      setActiveId(null)
-      setItems(projects)
-      return
-    }
-
-    let column = items
-      .filter((project) => project.status === toStatus && project.id !== draggedId)
-      .sort((a, b) => a.order - b.order)
-
-    let insertIndex = column.length
-    if (!isColumnId(overId)) {
-      const overIndex = column.findIndex((project) => project.id === overId)
-      if (overIndex >= 0) insertIndex = overIndex
-    }
-
-    column = [
-      ...column.slice(0, insertIndex),
-      { ...moving, status: toStatus },
-      ...column.slice(insertIndex),
-    ]
-
-    const renumbered = column.map((project, index) => ({ ...project, order: index }))
-    const others = items.filter((project) => project.status !== toStatus && project.id !== draggedId)
-    const nextItems = [...others, ...renumbered]
-    setItems(nextItems)
     setActiveId(null)
+    lastOverId.current = null
+
+    if (!fromStatus) {
+      setItems(projects)
+      return
+    }
+
+    const nextItems = applyDragEndItems(items, projects, draggedId, over)
+
+    const toStatus = nextItems.find((project) => project.id === draggedId)?.status
+    if (!toStatus) {
+      setItems(projects)
+      return
+    }
+
+    setItems(nextItems)
+
+    const destIds = columnIds(nextItems, toStatus)
+    const sourceIds = columnIds(nextItems, fromStatus)
+    const originalDestIds = columnIds(projects, toStatus)
+    const originalSourceIds = columnIds(projects, fromStatus)
+    const unchanged =
+      fromStatus === toStatus
+        ? destIds.join() === originalDestIds.join()
+        : destIds.join() === originalDestIds.join() && sourceIds.join() === originalSourceIds.join()
+
+    if (unchanged) return
 
     try {
-      await onReorderColumn(
-        toStatus,
-        renumbered.map((project) => project.id),
-        draggedId,
-      )
-
-      if (fromStatus !== toStatus) {
-        const sourceIds = nextItems
-          .filter((project) => project.status === fromStatus)
-          .sort((a, b) => a.order - b.order)
-          .map((project) => project.id)
-        await onReorderColumn(fromStatus, sourceIds)
+      if (onReorderColumns) {
+        const columns =
+          fromStatus === toStatus
+            ? [{ status: toStatus, orderedIds: destIds }]
+            : [
+                { status: toStatus, orderedIds: destIds },
+                { status: fromStatus, orderedIds: sourceIds },
+              ]
+        await onReorderColumns(columns, draggedId)
+      } else {
+        await onReorderColumn(toStatus, destIds, draggedId)
+        if (fromStatus !== toStatus) {
+          await onReorderColumn(fromStatus, sourceIds)
+        }
       }
     } catch {
       toast.error('No se pudo guardar el movimiento')
@@ -212,13 +230,20 @@ export function Board({ projects, onReorderColumn, onMoveProject }: BoardProps) 
 
   function handleDragCancel() {
     setActiveId(null)
+    lastOverId.current = null
+    recentlyMovedToNewContainer.current = false
     setItems(projects)
   }
 
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={boardCollisionDetection}
+      collisionDetection={collisionDetection}
+      measuring={{
+        droppable: {
+          strategy: MeasuringStrategy.Always,
+        },
+      }}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={(event) => void handleDragEnd(event)}

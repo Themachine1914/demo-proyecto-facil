@@ -134,7 +134,8 @@ export function ProjectCard({
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({
       id: project.id,
-      data: { type: 'project', project },
+      data: { type: 'project', status: project.status, project },
+      animateLayoutChanges: () => false,
     })
 
   const dragHandle = (
@@ -168,10 +169,10 @@ export function ProjectCard({
       <div
         ref={setNodeRef}
         style={{
-          transform: CSS.Transform.toString(transform),
+          transform: isDragging ? undefined : CSS.Transform.toString(transform),
           transition,
         }}
-        className={isDragging ? 'z-10 opacity-40' : ''}
+        className={isDragging ? 'opacity-0' : ''}
       >
         <ProjectCardContent
           project={project}

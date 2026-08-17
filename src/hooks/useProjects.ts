@@ -4,6 +4,7 @@ import {
   getDemoState,
   moveDemoProject,
   reorderDemoColumn,
+  reorderDemoColumns,
   resetDemoState,
   subscribeDemoStore,
 } from '../lib/demoStore'
@@ -23,6 +24,16 @@ export function useProjects() {
     [],
   )
 
+  const reorderColumns = useCallback(
+    async (
+      columns: { status: ProjectStatus; orderedIds: string[] }[],
+      movedProjectId?: string,
+    ) => {
+      reorderDemoColumns(columns, movedProjectId)
+    },
+    [],
+  )
+
   const moveProjectToColumn = useCallback(async (projectId: string, newStatus: ProjectStatus) => {
     moveDemoProject(projectId, newStatus)
   }, [])
@@ -36,6 +47,7 @@ export function useProjects() {
     loading: false,
     createProject,
     reorderColumn,
+    reorderColumns,
     moveProjectToColumn,
     restoreDemoData,
   }

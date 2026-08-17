@@ -33,7 +33,11 @@ export function Column({ id, label, projects, onMoveProject }: ColumnProps) {
         ref={setNodeRef}
         className="fa-scroll flex min-h-[200px] flex-1 flex-col gap-2 overflow-y-auto px-2 pb-3"
       >
-        <SortableContext items={projects.map((project) => project.id)} strategy={verticalListSortingStrategy}>
+        <SortableContext
+          id={id}
+          items={projects.map((project) => project.id)}
+          strategy={verticalListSortingStrategy}
+        >
           {projects.map((project) => (
             <ProjectCard key={project.id} project={project} onMoveProject={onMoveProject} />
           ))}
