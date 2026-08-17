@@ -10,7 +10,8 @@ import { BOARD_COLUMNS } from '../lib/constants'
 import type { ProjectFormData, ProjectStatus } from '../types/project'
 
 export function BoardPage() {
-  const { projects, loading, createProject, reorderColumn, moveProjectToColumn } = useProjects()
+  const { projects, loading, createProject, reorderColumn, reorderColumns, moveProjectToColumn } =
+    useProjects()
   const [modalOpen, setModalOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all')
@@ -93,6 +94,7 @@ export function BoardPage() {
         <Board
           projects={filtered}
           onReorderColumn={reorderColumn}
+          onReorderColumns={reorderColumns}
           onMoveProject={moveProjectToColumn}
         />
       )}

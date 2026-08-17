@@ -616,26 +616,40 @@ export function createDemoProject(data: ProjectFormData) {
   return project.id
 }
 
-export function reorderDemoColumn(
-  status: ProjectStatus,
-  orderedIds: string[],
+export function reorderDemoColumns(
+  columns: { status: ProjectStatus; orderedIds: string[] }[],
   movedProjectId?: string,
 ) {
   const now = new Date()
+  const nextById = new Map<string, { status: ProjectStatus; order: number }>()
+  for (const column of columns) {
+    column.orderedIds.forEach((id, order) => {
+      nextById.set(id, { status: column.status, order })
+    })
+  }
+
   state = {
     ...state,
     projects: state.projects.map((project) => {
-      const index = orderedIds.indexOf(project.id)
-      if (index === -1) return project
+      const update = nextById.get(project.id)
+      if (!update) return project
       return {
         ...project,
-        status,
-        order: index,
+        status: update.status,
+        order: update.order,
         updatedAt: movedProjectId === project.id ? now : project.updatedAt,
       }
     }),
   }
   emit()
+}
+
+export function reorderDemoColumn(
+  status: ProjectStatus,
+  orderedIds: string[],
+  movedProjectId?: string,
+) {
+  reorderDemoColumns([{ status, orderedIds }], movedProjectId)
 }
 
 export function moveDemoProject(projectId: string, newStatus: ProjectStatus) {
